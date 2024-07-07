@@ -6,7 +6,7 @@
     <application
         android:label="apotek_fe"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@drawable/splash">
         
         <activity
             android:name=".MainActivity"

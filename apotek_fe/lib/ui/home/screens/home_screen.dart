@@ -1,14 +1,13 @@
 import 'package:apotek_fe/models/obat.dart';
-import 'package:apotek_fe/ui/home/screens/search_page.dart';
+import 'package:apotek_fe/ui/authpage/register/screen/body.dart';
+import 'package:apotek_fe/ui/search/search_page.dart';
 import 'package:apotek_fe/ui/home/widgets/home_bottom_bar.dart';
 import 'package:apotek_fe/ui/home/widgets/items_widget.dart';
 import 'package:apotek_fe/utils/api-service/get_obat.dart';
 import 'package:apotek_fe/utils/blade/carousel.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   final int selectedIndex;
@@ -32,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen>
   int _current = 0;
   List<Obat> obats = [];
   bool _isLoading = true;
+  String _userId = '';
 
   final List<String> imgList = [
     'slide 1.png',
@@ -45,11 +45,34 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
     _tabController.addListener(_handleTabSelection);
     super.initState();
+    _loadUserId();
     fetchObats();
   }
 
   void onObatUpdated() {
-    fetchObats();
+    setState(() {
+      _isLoading = true;
+    });
+    fetchObats().then((_) {
+      setState(() {
+        _isLoading = false;
+      });
+    });
+  }
+
+  Future<void> _loadUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString('userId');
+    if (userId == null || userId.isEmpty) {
+      // Jika userId kosong, arahkan ke halaman login
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => Body()),
+      );
+    } else {
+      setState(() {
+        _userId = userId;
+      });
+    }
   }
 
   Future<void> fetchObats() async {
@@ -62,7 +85,6 @@ class _HomeScreenState extends State<HomeScreen>
         obats = (result as List).map((item) => Obat.fromJson(item)).toList();
         _isLoading = false;
       });
-      print('Fetched ${obats.length} obats');
     } catch (e) {
       print('Error fetching obats: $e');
       setState(() {
@@ -92,171 +114,6 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     appBar: AppBar(
-  //       automaticallyImplyLeading: false,
-  //       backgroundColor: Colors.white,
-  //       elevation: 0,
-  //       title: InkWell(
-  //         onTap: () {
-  //           Navigator.push(
-  //             context,
-  //             MaterialPageRoute(builder: (context) => const SearchPage()),
-  //           );
-  //         },
-  //         child: Container(
-  //           height: 45,
-  //           decoration: BoxDecoration(
-  //             color: Colors.white,
-  //             borderRadius: BorderRadius.circular(25),
-  //             boxShadow: [
-  //               BoxShadow(
-  //                 color: Colors.black.withOpacity(0.1),
-  //                 spreadRadius: 0,
-  //                 blurRadius: 10,
-  //                 offset: Offset(0, 3),
-  //               ),
-  //             ],
-  //           ),
-  //           child: Row(
-  //             children: [
-  //               Padding(
-  //                 padding: EdgeInsets.symmetric(horizontal: 15),
-  //                 child: Icon(
-  //                   Icons.search,
-  //                   color: Colors.grey[600],
-  //                 ),
-  //               ),
-  //               Text(
-  //                 'Find Your Drugs . . .',
-  //                 style: TextStyle(
-  //                   color: Colors.grey[600],
-  //                   fontSize: 16,
-  //                   fontWeight: FontWeight.w400,
-  //                 ),
-  //               )
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //     body: SafeArea(
-  //       child: _isLoading
-  //           ? Center(child: CircularProgressIndicator())
-  //           : RefreshIndicator(
-  //               onRefresh: fetchObats,
-  //               child: SingleChildScrollView(
-  //                 child: Column(
-  //                   children: [
-  //                     Padding(
-  //                       padding: const EdgeInsets.only(top: 15),
-  //                       child: Column(
-  //                         children: [
-  //                           CarouselWithIndicator(
-  //                             imgList: imgList,
-  //                             carouselController: _carouselController,
-  //                             current: _current,
-  //                             onPageChanged: _onPageChanged,
-  //                           ),
-  //                           SizedBox(height: 20),
-  //                           Row(
-  //                             mainAxisAlignment: MainAxisAlignment.center,
-  //                             children: imgList.asMap().entries.map((entry) {
-  //                               return GestureDetector(
-  //                                 onTap: () => _carouselController
-  //                                     .animateToPage(entry.key),
-  //                                 child: Container(
-  //                                   width: 8.0,
-  //                                   height: 8.0,
-  //                                   margin: EdgeInsets.symmetric(
-  //                                       vertical: 8.0, horizontal: 4.0),
-  //                                   decoration: BoxDecoration(
-  //                                     shape: BoxShape.circle,
-  //                                     color: (Theme.of(context).brightness ==
-  //                                                 Brightness.dark
-  //                                             ? Colors.white
-  //                                             : Colors.black)
-  //                                         .withOpacity(_current == entry.key
-  //                                             ? 0.9
-  //                                             : 0.4),
-  //                                   ),
-  //                                 ),
-  //                               );
-  //                             }).toList(),
-  //                           ),
-  //                         ],
-  //                       ),
-  //                     ),
-  //                     Center(
-  //                       child: Container(
-  //                         constraints: BoxConstraints(maxWidth: 300),
-  //                         child: TabBar(
-  //                           controller: _tabController,
-  //                           labelColor: const Color(0xFFE57734),
-  //                           unselectedLabelColor: Colors.black.withOpacity(0.5),
-  //                           isScrollable: true,
-  //                           indicator: const UnderlineTabIndicator(
-  //                             borderSide: BorderSide(
-  //                               width: 3,
-  //                               color: Color(0xFFE57734),
-  //                             ),
-  //                             insets: EdgeInsets.symmetric(horizontal: 16),
-  //                           ),
-  //                           labelStyle: const TextStyle(
-  //                               fontSize: 18, fontWeight: FontWeight.w500),
-  //                           labelPadding:
-  //                               const EdgeInsets.symmetric(horizontal: 20),
-  //                           tabs: const [
-  //                             Tab(text: "Pilek"),
-  //                             Tab(text: "Batuk"),
-  //                             Tab(text: "Panas"),
-  //                           ],
-  //                         ),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 10),
-  //                     SizedBox(
-  //                       height: MediaQuery.of(context).size.height - 400,
-  //                       child: TabBarView(
-  //                         controller: _tabController,
-  //                         children: [
-  //                           ItemsWidget(
-  //                             obats: obats
-  //                                 .where(
-  //                                     (obat) => obat.category == 'Obat Pilek')
-  //                                 .toList(),
-  //                             onObatUpdated: onObatUpdated,
-  //                           ),
-  //                           ItemsWidget(
-  //                             obats: obats
-  //                                 .where(
-  //                                     (obat) => obat.category == 'Obat Batuk')
-  //                                 .toList(),
-  //                             onObatUpdated: onObatUpdated,
-  //                           ),
-  //                           ItemsWidget(
-  //                             obats: obats
-  //                                 .where(
-  //                                     (obat) => obat.category == 'Obat Panas')
-  //                                 .toList(),
-  //                             onObatUpdated: onObatUpdated,
-  //                           ),
-  //                         ],
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ),
-  //             ),
-  //     ),
-  //     bottomNavigationBar: NavbarPage(
-  //       selectedIndex: widget.selectedIndex,
-  //       onItemTapped: widget.onItemTapped,
-  //     ),
-  //   );
-  // }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -310,11 +167,16 @@ class _HomeScreenState extends State<HomeScreen>
       body: SafeArea(
         child: _isLoading
             ? Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: fetchObats,
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
+            : obats.isEmpty
+                ? Center(
+                    child: Text(
+                      'Tidak ada Obat',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: fetchObats,
+                    child: SingleChildScrollView(
                       child: Column(
                         children: [
                           Padding(
@@ -387,46 +249,44 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                           const SizedBox(height: 10),
+                          SizedBox(
+                            height: MediaQuery.of(context)
+                                .size
+                                .height, // Atur tinggi sesuai kebutuhan
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                ItemsWidget(
+                                  obats: obats
+                                      .where((obat) =>
+                                          obat.category == 'Obat Pilek')
+                                      .toList(),
+                                  onObatUpdated: onObatUpdated,
+                                  scrollable: false,
+                                ),
+                                ItemsWidget(
+                                  obats: obats
+                                      .where((obat) =>
+                                          obat.category == 'Obat Batuk')
+                                      .toList(),
+                                  onObatUpdated: onObatUpdated,
+                                  scrollable: false,
+                                ),
+                                ItemsWidget(
+                                  obats: obats
+                                      .where((obat) =>
+                                          obat.category == 'Obat Panas')
+                                      .toList(),
+                                  onObatUpdated: onObatUpdated,
+                                  scrollable: false,
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    SliverFillRemaining(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          SingleChildScrollView(
-                            child: ItemsWidget(
-                              obats: obats
-                                  .where(
-                                      (obat) => obat.category == 'Obat Pilek')
-                                  .toList(),
-                              onObatUpdated: onObatUpdated,
-                            ),
-                          ),
-                          SingleChildScrollView(
-                            child: ItemsWidget(
-                              obats: obats
-                                  .where(
-                                      (obat) => obat.category == 'Obat Batuk')
-                                  .toList(),
-                              onObatUpdated: onObatUpdated,
-                            ),
-                          ),
-                          SingleChildScrollView(
-                            child: ItemsWidget(
-                              obats: obats
-                                  .where(
-                                      (obat) => obat.category == 'Obat Panas')
-                                  .toList(),
-                              onObatUpdated: onObatUpdated,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
+                  ),
       ),
       bottomNavigationBar: NavbarPage(
         selectedIndex: widget.selectedIndex,

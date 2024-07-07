@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:http/http.dart' as http;
 
 class SingleItemScreen extends StatefulWidget {
   final Obat obat;
@@ -31,6 +32,88 @@ class _SingleItemScreenState extends State<SingleItemScreen> {
     widget.onObatUpdated(); // Panggil ini setelah obat diperbarui
   }
 
+  Future<void> _deleteObat(String id) async {
+    var url = dotenv.env['URL'];
+    if (url == null) {
+      throw Exception("URL is not set in the environment variables");
+    }
+    var deleteUrl = Uri.parse('$url/api/delete-obat/$id');
+
+    try {
+      final response = await http.delete(deleteUrl);
+      if (response.statusCode == 200) {
+        await _showAlertBox(context, 'Obat berhasil dihapus');
+        widget.onObatUpdated();
+        Navigator.of(context).pop();
+      } else {
+        print('Gagal menghapus obat. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Terjadi kesalahan: $e');
+    }
+  }
+
+  Future<void> _showAlertBox(BuildContext context, String message) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap a button to dismiss the dialog
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Pemberitahuan'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(message),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showConfirmationDialog(BuildContext context) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap a button to dismiss the dialog
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Konfirmasi'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Apakah Anda yakin untuk menghapus obat ini?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Batal'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteObat(_obat.id);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var url = dotenv.env['URL'];
@@ -43,25 +126,32 @@ class _SingleItemScreenState extends State<SingleItemScreen> {
               expandedHeight: 300,
               pinned: true,
               flexibleSpace: FlexibleSpaceBar(
-                background: CarouselSlider(
-                  options: CarouselOptions(
-                    height: 300,
-                    viewportFraction: 1.0,
-                    enlargeCenterPage: false,
-                    autoPlay: true,
-                  ),
-                  items: widget.obat.imageUrl.map((item) {
-                    return Builder(
-                      builder: (BuildContext context) {
-                        return Image.network(
-                          "$url$item",
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                        );
-                      },
-                    );
-                  }).toList(),
-                ),
+                background: _obat.imageUrl.length == 1
+                    ? Image.network(
+                        "$url${_obat.imageUrl[0]}",
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      )
+                    : CarouselSlider(
+                        options: CarouselOptions(
+                          height: 300,
+                          viewportFraction: 1.0,
+                          enlargeCenterPage: false,
+                          autoPlay: true,
+                        ),
+                        items: _obat.imageUrl.map((item) {
+                          print('ini item $item');
+                          return Builder(
+                            builder: (BuildContext context) {
+                              return Image.network(
+                                "$url$item",
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              );
+                            },
+                          );
+                        }).toList(),
+                      ),
               ),
               leading: IconButton(
                 icon: Icon(Icons.arrow_back, color: Colors.black),
@@ -176,9 +266,7 @@ class _SingleItemScreenState extends State<SingleItemScreen> {
                             width: 10), // Optional: spacing between buttons
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
-                              // TODO: Implement delete functionality
-                            },
+                            onPressed: () => _showConfirmationDialog(context),
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

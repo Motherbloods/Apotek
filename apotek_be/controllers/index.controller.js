@@ -75,7 +75,7 @@ const login = async (req, res) => {
 const register = async (req, res) => {
   try {
     const { email, password, confirmPassword } = req.body;
-
+    console.log("Register", email, password, confirmPassword);
     if (!email || !password || !confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -204,9 +204,10 @@ const getSuggest = async (req, res) => {
   }
 };
 
-const getProductSearch = async (req, res) => {
+const getObatSearch = async (req, res) => {
   try {
     let query = req.query.q?.trim();
+
     if (!query) {
       return res.status(400).json({
         success: false,
@@ -214,7 +215,8 @@ const getProductSearch = async (req, res) => {
       });
     }
 
-    const userId = req.user?.userId;
+    const userId = req.query?.userId;
+
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -229,16 +231,16 @@ const getProductSearch = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    const obats = await Obats.findOne({
+    const obats = await Obats.find({
       name: { $regex: query, $options: "i" },
     });
-
+    console.log(obats);
     res.status(200).json({
       success: true,
       data: obats || [],
     });
   } catch (err) {
-    console.error("Error dalam getProductSearch:", err);
+    console.error("Error dalam getObatSearch:", err);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan saat mencari produk.",
@@ -249,7 +251,7 @@ const getProductSearch = async (req, res) => {
 
 const getUser = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = req.query.id;
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -270,7 +272,8 @@ const getUser = async (req, res) => {
       data: {
         id: user._id,
         email: user.email,
-        fullName: user.fullname,
+        fullname: user.fullname,
+        imageUrl: user.image,
       },
     });
   } catch (err) {
@@ -319,12 +322,25 @@ const updateUser = async (req, res) => {
   try {
     const userId = req.params.userId;
     const { email, fullname, imageurl } = req.body;
+    console.log(`User ${userId}`);
 
     if (!userId) {
       return res.status(400).json({
         success: false,
         message: "ID pengguna diperlukan",
       });
+    }
+    const updateData = {};
+    if (email) updateData.email = email;
+    if (fullname) updateData.fullname = fullname;
+    console.log(req.file);
+    console.log("ini req body", req.body.imageUrl);
+    if (req.file) {
+      // If a new image is uploaded
+      updateData.image = `/images/${req.file.filename}`;
+    } else if (req.body.imageUrl) {
+      // If keeping the existing image
+      updateData.image = req.body.imageUrl;
     }
 
     const updatedUser = await Users.findByIdAndUpdate(userId, updateData, {
@@ -345,6 +361,7 @@ const updateUser = async (req, res) => {
         id: updatedUser._id,
         email: updatedUser.email,
         fullName: updatedUser.fullname,
+        imageUrl: updatedUser.image,
       },
     });
   } catch (err) {
@@ -363,8 +380,15 @@ const updateObat = async (req, res) => {
       return res.status(404).json({ error: "ID not provided" });
     }
 
-    const { name, desc, price, category, imageUrl, stock } = req.body;
-    console.log(name, desc, price, category, imageUrl);
+    const { name, desc, price, category, stock } = req.body;
+    let imageUrl = JSON.parse(req.body.imageUrl);
+    console.log(req.body);
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map((file) => `/images/${file.filename}`);
+      imageUrl = [...imageUrl, ...newImages];
+    }
+    imageUrl = imageUrl.filter((url) => url.startsWith("/images"));
+    console.log(imageUrl);
     // Cek apakah semua field yang diperlukan ada
     if (!name || !desc || !price || !category || !imageUrl || !stock) {
       return res.status(400).json({ error: "All fields are required" });
@@ -399,15 +423,32 @@ const getObats = async (req, res) => {
     res.status(500).json({ message: "Error fetching medicines" });
   }
 };
+
+const deleteObats = async (req, res) => {
+  const id = req.params.id;
+  console.log(id);
+  try {
+    const deletedObat = await Obats.findByIdAndDelete(id);
+    if (!deletedObat) {
+      return res.status(404).json({ message: "Obat tidak ditemukan" });
+    }
+    res.status(200).json({ message: "Obat berhasil dihapus" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Terjadi kesalahan", error: error.message });
+  }
+};
 module.exports = {
   login,
   register,
   forgotPassword,
   getSuggest,
-  getProductSearch,
+  getObatSearch,
   getUser,
   getDetailObat,
   updateUser,
   getObats,
   updateObat,
+  deleteObats,
 };

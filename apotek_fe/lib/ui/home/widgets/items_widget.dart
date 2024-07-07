@@ -17,6 +17,14 @@ class ItemsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (obats.isEmpty) {
+      return Center(
+        child: Text(
+          'Produk Tidak Tersedia',
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        ),
+      );
+    }
     return GridView.builder(
       physics: NeverScrollableScrollPhysics(),
       shrinkWrap: true,
@@ -66,7 +74,9 @@ class ItemsWidget extends StatelessWidget {
                     onObatUpdated: onObatUpdated,
                   ),
                 ),
-              );
+              ).then((_) {
+                onObatUpdated(); // Tambahkan ini
+              });
             },
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

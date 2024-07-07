@@ -7,7 +7,6 @@ Future<String> registerUser(
   try {
     final api = dotenv.env['URL'] ?? '';
     var url = '$api/api/register/';
-    print(' halsdof $api');
 
     final Map<String, String> payload = {
       'email': email,

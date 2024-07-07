@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const upload = require("../utils/multer");
 
 const {
   login,
@@ -11,16 +12,22 @@ const {
   updateUser,
   getObats,
   updateObat,
+  deleteObats,
+  getObatSearch,
 } = require("../controllers/index.controller");
 
 router.post("/api/login", login);
 router.post("/api/register", register);
 router.post("/api/forgot-pass", forgotPassword);
-router.get("/api/getSuggest", getSuggest);
+
 router.get("/api/get-obat", getObats);
-router.get("/api/getUser/:userId", getUser);
-router.get("/api/getUser/:id", getDetailObat);
-router.put("/api/updateUser", updateUser);
-router.put("/api/update-obat/:id", updateObat);
+router.get("/api/user", getUser);
+router.get("/api/search-obats", getObatSearch);
+router.get("/api/suggest", getSuggest);
+
+router.put("/api/user/:userId", upload.single("image"), updateUser);
+router.put("/api/update-obat/:id", upload.array("images", 100), updateObat);
+
+router.delete("/api/delete-obat/:id", deleteObats);
 
 module.exports = router;

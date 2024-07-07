@@ -1,9 +1,5 @@
-import 'package:apotek_fe/ui/authpage/register/body.dart';
-import 'package:apotek_fe/ui/authpage/register/signup.dart';
-import 'package:apotek_fe/ui/home/main_screens.dart';
-import 'package:apotek_fe/ui/home/screens/home_screen.dart';
+import 'package:apotek_fe/ui/authpage/register/screen/body.dart';
 import 'package:flutter/material.dart';
-import 'package:apotek_fe/ui/authpage/login/Screens/Login/login_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -21,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Apotek',
       theme: ThemeData(),
-      home: MainScreen(),
+      home: Body(),
     );
   }
 }

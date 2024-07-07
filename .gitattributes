@@ -1,0 +1,12 @@
+# Mengonversi semua file teks ke LF saat disimpan di repository dan CRLF saat di checkout di Windows
+* text=auto
+
+# Mengatur file-file tertentu untuk selalu menggunakan LF
+*.xml text eol=lf
+*.json text eol=lf
+*.cc text eol=lf
+*.h text eol=lf
+*.cmake text eol=lf
+*.swift text eol=lf
+*.lock text eol=lf
+*.html text eol=lf
