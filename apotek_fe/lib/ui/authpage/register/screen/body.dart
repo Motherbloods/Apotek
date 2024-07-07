@@ -64,18 +64,15 @@ class _BodyState extends State<Body> with SingleTickerProviderStateMixin {
           _message = response['detail'];
           email = '';
           password = '';
+          confirmPassword = '';
         });
         // Show success message for 3 seconds
         Timer(const Duration(seconds: 1), () {
           setState(() {
             _message = '';
+            // Switch to login tab
+            _tabController.animateTo(1);
           });
-          // if (response['status'] == 201) {
-          //   Navigator.push(
-          //     context,
-          //     MaterialPageRoute(builder: (context) => const LoginScreen()),
-          //   );
-          // }
         });
       } else {
         setState(() {

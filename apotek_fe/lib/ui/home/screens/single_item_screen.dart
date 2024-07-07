@@ -143,8 +143,21 @@ class _SingleItemScreenState extends State<SingleItemScreen> {
                           print('ini item $item');
                           return Builder(
                             builder: (BuildContext context) {
+                              String finalUrl;
+                              if (item.startsWith('https')) {
+                                finalUrl =
+                                    item; // Use the item directly if it starts with https
+                              } else if (item.startsWith('/images')) {
+                                finalUrl =
+                                    '$url$item'; // Prepend the base URL if it starts with /images
+                              } else {
+                                // Handle other cases if necessary
+                                finalUrl =
+                                    item; // Or set to some default value or error handling
+                              }
+
                               return Image.network(
-                                "$url$item",
+                                finalUrl,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                               );

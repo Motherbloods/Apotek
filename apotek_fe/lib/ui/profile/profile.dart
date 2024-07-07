@@ -85,8 +85,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   CircleAvatar(
                     radius: 60,
                     backgroundImage: imageUrl.isNotEmpty
-                        ? NetworkImage('$url$imageUrl')
-                        : AssetImage('/images/default.jpeg') as ImageProvider,
+                        ? (imageUrl.startsWith('https://')
+                            ? NetworkImage(imageUrl)
+                            : NetworkImage('$url$imageUrl'))
+                        : AssetImage('images/default.jpeg') as ImageProvider,
                     onBackgroundImageError: (_, __) {
                       setState(() {
                         imageUrl = '';

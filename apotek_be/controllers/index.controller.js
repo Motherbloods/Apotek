@@ -6,6 +6,14 @@ const SearchSugest = require("../models/searchSuggest");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET,
+});
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -333,13 +341,12 @@ const updateUser = async (req, res) => {
     const updateData = {};
     if (email) updateData.email = email;
     if (fullname) updateData.fullname = fullname;
-    console.log(req.file);
-    console.log("ini req body", req.body.imageUrl);
+
     if (req.file) {
-      // If a new image is uploaded
-      updateData.image = `/images/${req.file.filename}`;
+      // Upload gambar ke Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path);
+      updateData.image = result.secure_url;
     } else if (req.body.imageUrl) {
-      // If keeping the existing image
       updateData.image = req.body.imageUrl;
     }
 
@@ -373,6 +380,7 @@ const updateUser = async (req, res) => {
     });
   }
 };
+
 const updateObat = async (req, res) => {
   try {
     const id = req.params.id;
@@ -381,14 +389,25 @@ const updateObat = async (req, res) => {
     }
 
     const { name, desc, price, category, stock } = req.body;
-    let imageUrl = JSON.parse(req.body.imageUrl);
-    console.log(req.body);
-    if (req.files && req.files.length > 0) {
-      const newImages = req.files.map((file) => `/images/${file.filename}`);
-      imageUrl = [...imageUrl, ...newImages];
-    }
-    imageUrl = imageUrl.filter((url) => url.startsWith("/images"));
+    let imageUrl = JSON.parse(req.body.imageUrl || "[]");
     console.log(imageUrl);
+    // Handle new image uploads
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = req.files.map((file) =>
+        cloudinary.uploader.upload(file.path)
+      );
+      const uploadResults = await Promise.all(uploadPromises);
+      const newCloudinaryUrls = uploadResults.map(
+        (result) => result.secure_url
+      );
+
+      imageUrl = [...imageUrl, ...newCloudinaryUrls];
+    }
+
+    imageUrl = imageUrl.filter(
+      (url) => url.startsWith("/images") || url.startsWith("https")
+    );
+
     // Cek apakah semua field yang diperlukan ada
     if (!name || !desc || !price || !category || !imageUrl || !stock) {
       return res.status(400).json({ error: "All fields are required" });
