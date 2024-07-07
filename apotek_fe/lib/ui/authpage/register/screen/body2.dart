@@ -36,7 +36,6 @@ class _BodyState extends State<Body> {
     try {
       String result = await registerUser(email!, password!, confirmPassword!);
       final response = jsonDecode(result);
-      print(response['status']);
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', response['id']);
 

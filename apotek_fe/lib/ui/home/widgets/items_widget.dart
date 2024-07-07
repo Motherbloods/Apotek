@@ -45,8 +45,13 @@ class ItemsWidget extends StatelessWidget {
 
   Widget _buildObatCard(BuildContext context, Obat obat) {
     var url = dotenv.env['URL'];
-    String imageUrl = obat.imageUrl.isNotEmpty ? '$url${obat.imageUrl[0]}' : '';
+    String imageUrl = '';
 
+    if (obat.imageUrl.isNotEmpty) {
+      imageUrl = obat.imageUrl[0].startsWith("https://res")
+          ? obat.imageUrl[0]
+          : '$url${obat.imageUrl[0]}';
+    }
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,

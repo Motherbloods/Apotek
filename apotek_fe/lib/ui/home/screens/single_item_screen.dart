@@ -128,7 +128,9 @@ class _SingleItemScreenState extends State<SingleItemScreen> {
               flexibleSpace: FlexibleSpaceBar(
                 background: _obat.imageUrl.length == 1
                     ? Image.network(
-                        "$url${_obat.imageUrl[0]}",
+                        _obat.imageUrl[0].startsWith("https://res")
+                            ? _obat.imageUrl[0]
+                            : "$url${_obat.imageUrl[0]}",
                         fit: BoxFit.cover,
                         width: double.infinity,
                       )
@@ -140,20 +142,15 @@ class _SingleItemScreenState extends State<SingleItemScreen> {
                           autoPlay: true,
                         ),
                         items: _obat.imageUrl.map((item) {
-                          print('ini item $item');
                           return Builder(
                             builder: (BuildContext context) {
                               String finalUrl;
-                              if (item.startsWith('https')) {
+                              if (item.startsWith('https://res')) {
                                 finalUrl =
                                     item; // Use the item directly if it starts with https
-                              } else if (item.startsWith('/images')) {
+                              } else {
                                 finalUrl =
                                     '$url$item'; // Prepend the base URL if it starts with /images
-                              } else {
-                                // Handle other cases if necessary
-                                finalUrl =
-                                    item; // Or set to some default value or error handling
                               }
 
                               return Image.network(

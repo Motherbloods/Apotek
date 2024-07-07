@@ -122,11 +122,33 @@ class _EditObatScreenState extends State<EditObatScreen> {
   //     );
   //   }
   // }
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text("Updating medicine..."),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> updateObats() async {
     final url = '${dotenv.env['URL']}/api/update-obat/${widget.item.id}';
 
     try {
+      _showLoadingDialog();
       var request = http.MultipartRequest('PUT', Uri.parse(url));
 
       request.fields['name'] = _nameController.text;
@@ -136,15 +158,18 @@ class _EditObatScreenState extends State<EditObatScreen> {
       request.fields['desc'] = _descriptionController.text;
 
       // Only send existing image URLs
-      List<String> existingImages =
-          _images.where((image) => image.startsWith('/images')).toList();
-      print(existingImages);
+      List<String> existingImages = _images
+          .where((image) =>
+              image.startsWith('/images') || image.startsWith('https://res'))
+          .toList();
+      print('ini exiteing $existingImages kalu ini images $_images');
       request.fields['imageUrl'] = jsonEncode(_images);
 
       // Add new image files
-      for (var image
-          in _images.where((image) => !image.startsWith('/images'))) {
+      for (var image in _images.where((image) =>
+          !image.startsWith('/images') && !image.startsWith('https://res'))) {
         var file = await http.MultipartFile.fromPath('images', image);
+        print('ini fileee $file');
         request.files.add(file);
       }
 
@@ -152,6 +177,7 @@ class _EditObatScreenState extends State<EditObatScreen> {
       var responseData = await response.stream.bytesToString();
       var jsonResponse = jsonDecode(responseData);
 
+      Navigator.of(context).pop();
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -189,22 +215,54 @@ class _EditObatScreenState extends State<EditObatScreen> {
   }
 
   Widget _buildImageWidget(String imagePath) {
-    var url = dotenv.env['URL'];
-    if (imagePath.startsWith('/images')) {
-      // Gambar dari network
+    if (imagePath.startsWith('https://res')) {
+      // Ini adalah URL gambar
+      return Image.network(
+        imagePath,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 100,
+            height: 100,
+            color: Colors.grey,
+            child: Icon(Icons.error),
+          );
+        },
+      );
+    } else if (imagePath.startsWith('/images')) {
+      // Ini adalah path relatif dari server
+      var url = dotenv.env['URL'];
       return Image.network(
         '$url$imagePath',
         width: 100,
         height: 100,
         fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 100,
+            height: 100,
+            color: Colors.grey,
+            child: Icon(Icons.error),
+          );
+        },
       );
     } else {
-      // Gambar lokal
+      // Ini adalah path file lokal
       return Image.file(
         File(imagePath),
         width: 100,
         height: 100,
         fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 100,
+            height: 100,
+            color: Colors.grey,
+            child: Icon(Icons.error),
+          );
+        },
       );
     }
   }

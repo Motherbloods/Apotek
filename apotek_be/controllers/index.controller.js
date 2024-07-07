@@ -404,6 +404,7 @@ const updateUser = async (req, res) => {
 const updateObat = async (req, res) => {
   try {
     const id = req.params.id;
+    console.log(id);
     if (!id) {
       return res.status(404).json({ error: "ID not provided" });
     }
@@ -429,7 +430,7 @@ const updateObat = async (req, res) => {
       const newCloudinaryUrls = await Promise.all(uploadPromises);
       imageUrl = [...imageUrl, ...newCloudinaryUrls];
     }
-
+    console.log(imageUrl);
     imageUrl = imageUrl.filter(
       (url) => url.startsWith("/images") || url.startsWith("https")
     );

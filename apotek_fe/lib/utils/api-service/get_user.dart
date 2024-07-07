@@ -7,7 +7,6 @@ Future<Map<String, dynamic>> getUser(String userId) async {
   var response = await http.get(Uri.parse('$url/api/user?id=$userId'));
   if (response.statusCode == 200) {
     var jsonData = json.decode(response.body);
-    print(jsonData['data']);
     return jsonData['data'];
   } else {
     throw Exception('Failed to load user');

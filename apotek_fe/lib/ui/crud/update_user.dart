@@ -222,9 +222,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
   //     }
   //   }
   // }
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text("Updating profile..."),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _updateProfile() async {
     if (_formKey.currentState!.validate()) {
+      _showLoadingDialog();
       var url = dotenv.env['URL'];
       var urlparse = Uri.parse('$url/api/user/$_userId');
 
@@ -243,7 +265,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         var response = await request.send();
         var responseData = await response.stream.bytesToString();
         var jsonResponse = jsonDecode(responseData);
-
+        Navigator.of(context).pop();
         if (response.statusCode == 200) {
           if (jsonResponse['success']) {
             await showDialog(
