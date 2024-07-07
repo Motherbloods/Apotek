@@ -54,10 +54,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundImage: FileImage(_imageFile!),
       );
     } else if (_currentImageUrl.isNotEmpty) {
-      return CircleAvatar(
-        radius: 60,
-        backgroundImage: NetworkImage('$url$_currentImageUrl'),
-      );
+      if (_currentImageUrl.startsWith('https://res')) {
+        return CircleAvatar(
+          radius: 60,
+          backgroundImage: NetworkImage('$_currentImageUrl'),
+        );
+      } else {
+        return CircleAvatar(
+          radius: 60,
+          backgroundImage: NetworkImage('$url$_currentImageUrl'),
+        );
+      }
     } else {
       return CircleAvatar(
         radius: 60,

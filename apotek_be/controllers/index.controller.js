@@ -343,9 +343,29 @@ const updateUser = async (req, res) => {
     if (fullname) updateData.fullname = fullname;
 
     if (req.file) {
-      // Upload gambar ke Cloudinary
-      const result = await cloudinary.uploader.upload(req.file.path);
-      updateData.image = result.secure_url;
+      try {
+        const result = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+        updateData.image = result.secure_url;
+      } catch (uploadError) {
+        console.error("Error uploading image to Cloudinary:", uploadError);
+        return res.status(500).json({
+          success: false,
+          message: "Terjadi kesalahan saat mengunggah gambar",
+          error:
+            process.env.NODE_ENV === "development"
+              ? uploadError.message
+              : undefined,
+        });
+      }
     } else if (req.body.imageUrl) {
       updateData.image = req.body.imageUrl;
     }
@@ -393,14 +413,20 @@ const updateObat = async (req, res) => {
     console.log(imageUrl);
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map((file) =>
-        cloudinary.uploader.upload(file.path)
+      const uploadPromises = req.files.map(
+        (file) =>
+          new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              { resource_type: "auto" },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result.secure_url);
+              }
+            );
+            uploadStream.end(file.buffer);
+          })
       );
-      const uploadResults = await Promise.all(uploadPromises);
-      const newCloudinaryUrls = uploadResults.map(
-        (result) => result.secure_url
-      );
-
+      const newCloudinaryUrls = await Promise.all(uploadPromises);
       imageUrl = [...imageUrl, ...newCloudinaryUrls];
     }
 
