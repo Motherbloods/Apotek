@@ -10,3 +10,5 @@
 *.swift text eol=lf
 *.lock text eol=lf
 *.html text eol=lf
+*.json text eol=lf
+
