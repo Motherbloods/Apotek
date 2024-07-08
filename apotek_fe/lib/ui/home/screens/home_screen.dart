@@ -250,9 +250,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           const SizedBox(height: 10),
                           SizedBox(
-                            height: MediaQuery.of(context)
-                                .size
-                                .height, // Atur tinggi sesuai kebutuhan
+                            height: MediaQuery.of(context).size.height +
+                                500, // Atur tinggi sesuai kebutuhan
                             child: TabBarView(
                               controller: _tabController,
                               children: [

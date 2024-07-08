@@ -17,7 +17,6 @@ cloudinary.config({
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(email, password);
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -25,43 +24,24 @@ const login = async (req, res) => {
       });
     }
 
-    const user = await Users.findOne({ email: email });
-    if (!user) {
+    const user = await Users.findOne(
+      { email },
+      { email: 1, password: 1, fullname: 1 }
+    ).lean();
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         success: false,
         message: "Email atau password salah.",
       });
-    }
-
-    const validateUser = await bcrypt.compare(password, user.password);
-    if (!validateUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Email atau password salah.",
-      });
-    }
-
-    const secretToken = process.env.SECRET_TOKEN;
-    if (!secretToken) {
-      throw new Error(
-        "SECRET_TOKEN tidak ditemukan dalam environment variables."
-      );
     }
 
     const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-        fullname: user.fullname,
-      },
-      secretToken,
-      {
-        expiresIn: "1d",
-      }
+      { id: user._id, email: user.email, fullname: user.fullname },
+      process.env.SECRET_TOKEN,
+      { expiresIn: "1d" }
     );
 
-    user.token = token;
-    await user.save();
+    await Users.updateOne({ _id: user._id }, { $set: { token } });
 
     return res.status(200).json({
       success: true,
@@ -73,8 +53,7 @@ const login = async (req, res) => {
     console.error("Error saat login:", err);
     return res.status(500).json({
       success: false,
-      message:
-        "Terjadi kesalahan saat memproses permintaan login. Silakan coba lagi nanti.",
+      message: "Terjadi kesalahan saat memproses permintaan login.",
       error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
@@ -83,7 +62,6 @@ const login = async (req, res) => {
 const register = async (req, res) => {
   try {
     const { email, password, confirmPassword } = req.body;
-    console.log("Register", email, password, confirmPassword);
     if (!email || !password || !confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -99,8 +77,9 @@ const register = async (req, res) => {
         message: "Password dan confirm password harus sama.",
       });
     }
-    const alreadyUser = await Users.findOne({ email });
-    if (alreadyUser) {
+
+    const existingUser = await Users.findOne({ email }, { _id: 1 }).lean();
+    if (existingUser) {
       return res.status(409).json({
         success: false,
         status: 409,
@@ -109,12 +88,8 @@ const register = async (req, res) => {
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
+    const newUser = await Users.create({ email, password: hashPassword });
 
-    const newUser = new Users({
-      email,
-      password: hashPassword,
-    });
-    await newUser.save();
     return res.status(201).json({
       success: true,
       status: 201,
@@ -133,97 +108,45 @@ const register = async (req, res) => {
   }
 };
 
-const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Alamat email harus disediakan",
-      });
-    }
-
-    const user = await Users.findOne({ email });
-
-    if (!user) {
-      // Untuk keamanan, kita tidak memberitahu apakah email ada atau tidak
-      return res.status(200).json({
-        success: true,
-        message: "Jika email terdaftar, instruksi reset password akan dikirim",
-      });
-    }
-
-    // Generate token untuk reset password
-    const resetToken = crypto.randomBytes(20).toString("hex");
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 jam
-    await user.save();
-
-    // Kirim email dengan token
-    // Catatan: Implementasi pengiriman email sebenarnya harus ditambahkan di sini
-    console.log(`Reset token untuk ${email}: ${resetToken}`);
-
-    res.status(200).json({
-      success: true,
-      message: "Instruksi reset password telah dikirim ke email Anda",
-    });
-  } catch (err) {
-    console.error("Error dalam forgotPassword:", err);
-    res.status(500).json({
-      success: false,
-      message: "Terjadi kesalahan saat memproses permintaan lupa password",
-      error: process.env.NODE_ENV === "development" ? err.message : undefined,
-    });
-  }
-};
-
 const getSuggest = async (req, res) => {
   try {
-    let query = req.query.q;
-    const user = req.query.userId;
+    const { q: query, userId } = req.query;
     let response = [];
 
-    query = query?.trim();
-
-    if (user) {
-      const historySuggest = await SearchHistory.find({
-        userId: { $regex: user, $options: "i" },
+    if (userId) {
+      response = await SearchHistory.find({ userId })
+        .sort({ date: -1 })
+        .limit(5)
+        .lean();
+    } else if (query?.trim()) {
+      response = await SearchSugest.find({
+        suggest: { $regex: query.trim(), $options: "i" },
       })
-        .sort({ date: -1 }) // Mengurutkan berdasarkan jmlDicari tertinggi
-        .limit(5);
-      response = historySuggest;
-    } else if (query && !user) {
-      const suggest = await SearchSugest.find({
-        suggest: { $regex: query, $options: "i" },
-      })
-        .sort({ jmlDicari: -1 }) // Mengurutkan berdasarkan jmlDicari tertinggi
-        .limit(5);
-      response = suggest;
+        .sort({ jmlDicari: -1 })
+        .limit(5)
+        .lean();
     }
+
     res.status(200).json(response);
   } catch (err) {
     console.error("Error dalam getSuggest:", err);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan saat mengambil saran pencarian.",
-      error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
 };
 
 const getObatSearch = async (req, res) => {
   try {
-    let query = req.query.q?.trim();
+    const { q: query, userId } = req.query;
 
-    if (!query) {
+    if (!query?.trim()) {
       return res.status(400).json({
         success: false,
         message: "Parameter pencarian tidak boleh kosong.",
       });
     }
-
-    const userId = req.query?.userId;
 
     if (!userId) {
       return res.status(401).json({
@@ -241,8 +164,7 @@ const getObatSearch = async (req, res) => {
 
     const obats = await Obats.find({
       name: { $regex: query, $options: "i" },
-    });
-    console.log(obats);
+    }).lean();
     res.status(200).json({
       success: true,
       data: obats || [],
@@ -328,9 +250,8 @@ const getDetailObat = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const { userId } = req.params;
     const { email, fullname, imageurl } = req.body;
-    console.log(`User ${userId}`);
 
     if (!userId) {
       return res.status(400).json({
@@ -338,22 +259,11 @@ const updateUser = async (req, res) => {
         message: "ID pengguna diperlukan",
       });
     }
-    const updateData = {};
-    if (email) updateData.email = email;
-    if (fullname) updateData.fullname = fullname;
+    const updateData = { email, fullname };
 
     if (req.file) {
       try {
-        const result = await new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            { resource_type: "auto" },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          );
-          uploadStream.end(req.file.buffer);
-        });
+        const result = await uploadToCloudinary(req.file);
         updateData.image = result.secure_url;
       } catch (uploadError) {
         console.error("Error uploading image to Cloudinary:", uploadError);
@@ -372,7 +282,7 @@ const updateUser = async (req, res) => {
 
     const updatedUser = await Users.findByIdAndUpdate(userId, updateData, {
       new: true,
-    });
+    }).lean();
 
     if (!updatedUser) {
       return res.status(404).json({
@@ -401,17 +311,30 @@ const updateUser = async (req, res) => {
   }
 };
 
+const uploadToCloudinary = (file) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { resource_type: "auto" },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    uploadStream.end(file.buffer);
+  });
+};
+
 const updateObat = async (req, res) => {
   try {
-    const id = req.params.id;
-    console.log(id);
+    const { id } = req.params;
+
     if (!id) {
       return res.status(404).json({ error: "ID not provided" });
     }
 
     const { name, desc, price, category, stock } = req.body;
     let imageUrl = JSON.parse(req.body.imageUrl || "[]");
-    console.log(imageUrl);
+
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
       const uploadPromises = req.files.map(
@@ -430,7 +353,6 @@ const updateObat = async (req, res) => {
       const newCloudinaryUrls = await Promise.all(uploadPromises);
       imageUrl = [...imageUrl, ...newCloudinaryUrls];
     }
-    console.log(imageUrl);
     imageUrl = imageUrl.filter(
       (url) => url.startsWith("/images") || url.startsWith("https")
     );
@@ -446,7 +368,6 @@ const updateObat = async (req, res) => {
       { name, description: desc, price, category, imageUrl, stock },
       { new: true, runValidators: true }
     );
-    console.log(obat);
 
     if (!obat) {
       return res.status(404).json({ error: "Medicine not found" });
@@ -462,7 +383,7 @@ const updateObat = async (req, res) => {
 
 const getObats = async (req, res) => {
   try {
-    const obats = await Obats.find();
+    const obats = await Obats.find().lean();
     res.status(200).json(obats);
   } catch (err) {
     console.error("Error fetching medicines:", err);
@@ -472,7 +393,7 @@ const getObats = async (req, res) => {
 
 const deleteObats = async (req, res) => {
   const id = req.params.id;
-  console.log(id);
+
   try {
     const deletedObat = await Obats.findByIdAndDelete(id);
     if (!deletedObat) {
@@ -488,7 +409,7 @@ const deleteObats = async (req, res) => {
 module.exports = {
   login,
   register,
-  forgotPassword,
+
   getSuggest,
   getObatSearch,
   getUser,

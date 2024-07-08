@@ -5,7 +5,6 @@ const upload = require("../utils/multer");
 const {
   login,
   register,
-  forgotPassword,
   getSuggest,
   getUser,
   getDetailObat,
@@ -18,7 +17,6 @@ const {
 
 router.post("/api/login", login);
 router.post("/api/register", register);
-router.post("/api/forgot-pass", forgotPassword);
 
 router.get("/api/get-obat", getObats);
 router.get("/api/user", getUser);

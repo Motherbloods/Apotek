@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <application
-        android:label="apotek_fe"
+        android:label="Apotek Jaya"
         android:name="${applicationName}"
         android:icon="@drawable/splash">
         
