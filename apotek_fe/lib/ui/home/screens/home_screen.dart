@@ -45,7 +45,6 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
     _tabController.addListener(_handleTabSelection);
     super.initState();
-    _loadUserId();
     fetchObats();
   }
 
@@ -58,21 +57,6 @@ class _HomeScreenState extends State<HomeScreen>
         _isLoading = false;
       });
     });
-  }
-
-  Future<void> _loadUserId() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString('userId');
-    if (userId == null || userId.isEmpty) {
-      // Jika userId kosong, arahkan ke halaman login
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => Body()),
-      );
-    } else {
-      setState(() {
-        _userId = userId;
-      });
-    }
   }
 
   Future<void> fetchObats() async {

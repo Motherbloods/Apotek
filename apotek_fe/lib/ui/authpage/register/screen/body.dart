@@ -111,6 +111,9 @@ class _BodyState extends State<Body> with SingleTickerProviderStateMixin {
 
       if (result['success']) {
         final userId = result['userId'];
+        final token = result['token'];
+
+        await saveToken(token); // Simpan token
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('userId', userId);
@@ -146,6 +149,8 @@ class _BodyState extends State<Body> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
     return Background(
       child: Container(
         color: Colors.white,
@@ -153,42 +158,48 @@ class _BodyState extends State<Body> with SingleTickerProviderStateMixin {
           color: Colors.transparent,
           child: Stack(
             children: [
-              SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Image.asset(
-                      "assets/images/logo.png",
-                      height: size.height * 0.35,
+              Scrollable(viewportBuilder: (context, position) {
+                return AnimatedContainer(
+                  duration: Duration(milliseconds: 300),
+                  padding: EdgeInsets.only(bottom: bottomPadding),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Image.asset(
+                          "assets/images/logo.png",
+                          height: size.height * 0.35,
+                        ),
+                        Container(
+                          constraints: BoxConstraints(maxWidth: 300),
+                          child: TabBar(
+                            controller: _tabController,
+                            tabs: [
+                              Tab(text: 'Sign Up'),
+                              Tab(text: 'Login'),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        Container(
+                          height: 300, // Adjust this height as needed
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              // Sign Up Form
+                              _buildSignUpForm(),
+                              // Login Form
+                              _buildLoginForm(),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    Container(
-                      constraints: BoxConstraints(maxWidth: 300),
-                      child: TabBar(
-                        controller: _tabController,
-                        tabs: [
-                          Tab(text: 'Sign Up'),
-                          Tab(text: 'Login'),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Container(
-                      height: 300, // Adjust this height as needed
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          // Sign Up Form
-                          _buildSignUpForm(),
-                          // Login Form
-                          _buildLoginForm(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              }),
               if (_isLoading || _message.isNotEmpty)
                 Positioned.fill(
                   child: Container(

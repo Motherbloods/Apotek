@@ -1,6 +1,22 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+Future<void> saveToken(String token) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('auth_token', token);
+}
+
+Future<String?> getToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('auth_token');
+}
+
+Future<void> removeToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('auth_token');
+}
 
 Future<Map<String, dynamic>> loginUser(String email, String password) async {
   try {

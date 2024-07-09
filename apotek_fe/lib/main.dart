@@ -1,4 +1,4 @@
-import 'package:apotek_fe/ui/authpage/register/screen/body.dart';
+import 'package:apotek_fe/utils/blade/auth_check.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Apotek',
       theme: ThemeData(),
-      home: Body(),
+      home: AuthCheck(),
     );
   }
 }
